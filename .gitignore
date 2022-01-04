@@ -1,0 +1,7 @@
+.idea/
+venv/
+sample/
+dataset/
+__pycache__/
+*.zip.*
+*.zip

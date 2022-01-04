@@ -1,0 +1,9 @@
+.idea/
+venv/
+sample/
+dataset/
+vast/
+__pycache__/
+*.zip.*
+*.zip
+*.csv

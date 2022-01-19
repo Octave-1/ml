@@ -1,0 +1,24 @@
+FROM tensorflow/tensorflow:latest-gpu
+
+# install packages
+RUN apt-get update && apt-get install -y \
+    git \
+    vim \
+    python3-venv \
+    gettext
+
+# set this the gcp environment variable
+ENV GOOGLE_APPLICATION_CREDENTIALS=$/root/.gcp/nth-fiber-303315-ee5378f17565.json
+
+# copy in the credential files
+RUN mkdir -p /root/.gcp /root/.kaggle
+COPY gcp.json /root/.gcp/
+COPY kaggle.json /root/.kaggle/kaggle_template.json
+COPY setup.sh /home
+
+# install gcloud
+RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key --keyring /usr/share/keyrings/cloud.google.gpg  add - && apt-get update -y && apt-get install google-cloud-sdk -y
+
+RUN pip install --upgrade pip && pip install tensorflow_addons \
+    pandas \
+    kaggle

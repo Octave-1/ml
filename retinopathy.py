@@ -1,4 +1,3 @@
-import csv
 import os
 import pathlib
 import numpy as np
@@ -6,7 +5,6 @@ import tensorflow as tf
 import tensorflow_addons as tfa
 import pandas as pd
 import sys
-import csv
 
 if len(sys.argv) > 1:
     arg = sys.argv[1]
@@ -16,9 +14,9 @@ else:
 
 # define parameters for the loader
 batch_size = 32
-img_height = 128
-img_width = 128
-epochs = 1
+img_height = 512
+img_width = 512
+epochs = 2
 num_classes = 5
 
 
@@ -139,7 +137,7 @@ def predict(ds):
 
 # process images
 data_dir = pathlib.Path(os.getcwd() + '/../datasets/retinopathy/train_images/')
-data_dir_test = pathlib.Path(os.getcwd() + '/../datasets/retinopathy/test_images/')
+# data_dir_test = pathlib.Path(os.getcwd() + '/../datasets/retinopathy/test_images_512/')
 
 # retrieve class names
 class_names = np.array(sorted([item.name for item in data_dir.glob('*') if item.name != "LICENSE.txt"]))
@@ -152,17 +150,17 @@ list_ds = list_ds.shuffle(image_count, reshuffle_each_iteration=False)
 val_size = int(image_count * 0.2)
 train_ds = list_ds.skip(val_size)
 val_ds = list_ds.take(val_size)
-test_ds = tf.data.Dataset.list_files(str(data_dir_test/'*'), shuffle=False)
+# test_ds = tf.data.Dataset.list_files(str(data_dir_test/'*'), shuffle=False)
 
 # Set `num_parallel_calls` so multiple images are loaded/processed in parallel.
 train_ds = train_ds.map(process_path, num_parallel_calls=AUTOTUNE)
 val_ds = val_ds.map(process_path, num_parallel_calls=AUTOTUNE)
-test_ds = test_ds.map(process_path_test, num_parallel_calls=AUTOTUNE)
+# test_ds = test_ds.map(process_path_test, num_parallel_calls=AUTOTUNE)
 
 # configure dataset for performance
 train_ds = configure_for_performance(train_ds)
 val_ds = configure_for_performance(val_ds)
-test_ds = configure_for_performance(test_ds)
+# test_ds = configure_for_performance(test_ds)
 
 # build model
 model = tf.keras.Sequential([
@@ -177,11 +175,15 @@ model = tf.keras.Sequential([
   tf.keras.layers.MaxPooling2D(),
   tf.keras.layers.Conv2D(160, 3, activation='relu'),
   tf.keras.layers.MaxPooling2D(),
+  tf.keras.layers.Conv2D(192, 3, activation='relu'),
+  tf.keras.layers.MaxPooling2D(),
   tf.keras.layers.Flatten(),
-  tf.keras.layers.Dense(256, activation='relu'),
+  tf.keras.layers.Dense(1024, activation='relu'),
+  tf.keras.layers.Dense(512, activation='relu'),
   tf.keras.layers.Dense(num_classes - 1, activation='sigmoid')
 ])
 
+# compile
 model.compile(optimizer='sgd', loss='mean_squared_error', run_eagerly=True)
 model.fit(
   train_ds,
@@ -189,13 +191,3 @@ model.fit(
   epochs=epochs,
   callbacks=[MetricsCallback(val_ds)]
 )
-
-# get predictions
-y_pred = predict(test_ds)
-img_id = list(tf.concat([y for x, y in test_ds], axis=0).numpy())
-img_id = [x.decode('utf-8').rstrip('.jpeg') for x in img_id]
-
-df_pred = pd.DataFrame({'image': img_id,
-                        'level': list(y_pred)})
-
-df_pred.to_csv('predictions.csv', header=True, index=False, quoting=csv.QUOTE_NONE)

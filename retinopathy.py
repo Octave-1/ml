@@ -25,7 +25,7 @@ AUTOTUNE = tf.data.AUTOTUNE
 
 # move images into folders according to level
 # train labels
-path = os.path.join(os.getcwd(), '../datasets/retinopathy/train_images/')
+path = os.path.join(os.getcwd(), '../datasets/retinopathy/train_images_512/')
 train_labels = pd.read_csv(os.path.join(path, '../', 'trainLabels.csv'))
 
 if first_run:
@@ -136,7 +136,7 @@ def predict(ds):
 
 
 # process images
-data_dir = pathlib.Path(os.getcwd() + '/../datasets/retinopathy/train_images/')
+data_dir = pathlib.Path(os.getcwd() + '/../datasets/retinopathy/train_images_512/')
 # data_dir_test = pathlib.Path(os.getcwd() + '/../datasets/retinopathy/test_images_512/')
 
 # retrieve class names

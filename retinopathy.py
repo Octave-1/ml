@@ -177,6 +177,8 @@ model = tf.keras.Sequential([
   tf.keras.layers.MaxPooling2D(),
   tf.keras.layers.Conv2D(192, 3, activation='relu'),
   tf.keras.layers.MaxPooling2D(),
+  tf.keras.layers.Conv2D(224, 3, activation='relu'),
+  tf.keras.layers.MaxPooling2D(),
   tf.keras.layers.Flatten(),
   tf.keras.layers.Dense(1024, activation='relu'),
   tf.keras.layers.Dense(512, activation='relu'),

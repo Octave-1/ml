@@ -5,6 +5,7 @@ import tensorflow as tf
 import tensorflow_addons as tfa
 import pandas as pd
 import sys
+import random
 
 if len(sys.argv) > 1:
     arg = sys.argv[1]
@@ -18,7 +19,7 @@ img_height = 512
 img_width = 512
 epochs = 2
 num_classes = 5
-
+sample_size = 10000
 
 # define this for later
 AUTOTUNE = tf.data.AUTOTUNE
@@ -136,31 +137,50 @@ def predict(ds):
 
 
 # process images
-data_dir = pathlib.Path(os.getcwd() + '/../datasets/retinopathy/train_images_512/')
-# data_dir_test = pathlib.Path(os.getcwd() + '/../datasets/retinopathy/test_images_512/')
+data_dir = os.getcwd() + '/../datasets/retinopathy/train_images_512/'
+# data_dir_test = os.getcwd() + '/../datasets/retinopathy/test_images_512/'
 
-# retrieve class names
-class_names = np.array(sorted([item.name for item in data_dir.glob('*') if item.name != "LICENSE.txt"]))
+# class names
+class_names = np.array(['0', '1', '2', '3', '4'])
 
-image_count = len(list(data_dir.glob('*/*.jpeg')))
-list_ds = tf.data.Dataset.list_files(str(data_dir/'*/*'), shuffle=False)
-list_ds = list_ds.shuffle(image_count, reshuffle_each_iteration=False)
+# (1) randomly sample 20% of the files to get the validation set
+files = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_dir)) for f in fn]
+files_val = random.sample(files, int(0.2*len(files)))
+# files_test = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_dir_test + '/')) for f in fn]
 
-# train, validation & test
-val_size = int(image_count * 0.2)
-train_ds = list_ds.skip(val_size)
-val_ds = list_ds.take(val_size)
-# test_ds = tf.data.Dataset.list_files(str(data_dir_test/'*'), shuffle=False)
+# (2) the get the list of files for each class, removing the validation files
+# will use the weights vector in the next step
+list_ds = np.array([])
+for level in ['0', '1', '2', '3', '4']:
+    files_train = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_dir + level)) for f in fn]
+    files_train = [elem for elem in files_train if elem not in files_val]
 
+    # ids = np.arange(len(files_train))
+    # choices = np.random.choice(ids, sample_size)
+    # files_train = np.asarray(files_train)[choices]
+    list_ds = np.append(list_ds, files_train)
+
+np.random.shuffle(list_ds)
+list_ds = tf.data.Dataset.from_tensor_slices(list_ds)
 # Set `num_parallel_calls` so multiple images are loaded/processed in parallel.
-train_ds = train_ds.map(process_path, num_parallel_calls=AUTOTUNE)
-val_ds = val_ds.map(process_path, num_parallel_calls=AUTOTUNE)
-# test_ds = test_ds.map(process_path_test, num_parallel_calls=AUTOTUNE)
+resampled_ds = list_ds.map(process_path, num_parallel_calls=AUTOTUNE)
 
-# configure dataset for performance
-train_ds = configure_for_performance(train_ds)
-val_ds = configure_for_performance(val_ds)
-# test_ds = configure_for_performance(test_ds)
+# validation
+list_ds = tf.data.Dataset.from_tensor_slices(files_val)
+val_ds = list_ds.map(process_path, num_parallel_calls=AUTOTUNE)
+
+train_ds = (
+    resampled_ds
+    .shuffle(1000)
+    .batch(batch_size)
+    .prefetch(AUTOTUNE)
+)
+
+val_ds = (
+    val_ds
+    .batch(batch_size)
+    .prefetch(AUTOTUNE)
+)
 
 # build model
 model = tf.keras.Sequential([

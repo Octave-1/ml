@@ -19,7 +19,7 @@ img_height = 512
 img_width = 512
 epochs = 2
 num_classes = 5
-sample_size = 10000
+sample_size = 27000
 
 # define this for later
 AUTOTUNE = tf.data.AUTOTUNE
@@ -155,9 +155,9 @@ for level in ['0', '1', '2', '3', '4']:
     files_train = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_dir + level)) for f in fn]
     files_train = [elem for elem in files_train if elem not in files_val]
 
-    # ids = np.arange(len(files_train))
-    # choices = np.random.choice(ids, sample_size)
-    # files_train = np.asarray(files_train)[choices]
+    ids = np.arange(len(files_train))
+    choices = np.random.choice(ids, sample_size)
+    files_train = np.asarray(files_train)[choices]
     list_ds = np.append(list_ds, files_train)
 
 np.random.shuffle(list_ds)

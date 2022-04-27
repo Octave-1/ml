@@ -16,7 +16,7 @@ else:
 # define parameters for the loader
 batch_size = 32
 img_height = 512
-img_width = 512
+img_width = 768
 epochs = 10
 num_classes = 5
 sample_size = 10000

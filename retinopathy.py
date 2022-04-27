@@ -17,7 +17,7 @@ else:
 batch_size = 32
 img_height = 512
 img_width = 512
-epochs = 2
+epochs = 10
 num_classes = 5
 sample_size = 10000
 
@@ -26,8 +26,11 @@ AUTOTUNE = tf.data.AUTOTUNE
 
 # move images into folders according to level
 # train labels
-path = os.path.join(os.getcwd(), '../datasets/retinopathy/train_images_512/')
+path = os.path.join(os.getcwd(), '../datasets/retinopathy/train_images_processed/')
 train_labels = pd.read_csv(os.path.join(path, '../', 'trainLabels.csv'))
+
+# remove one file which could not be processed
+train_labels = train_labels.loc[train_labels.image != '492_right']
 
 if first_run:
     for level in ['0', '1', '2', '3', '4']:
@@ -137,7 +140,7 @@ def predict(ds):
 
 
 # process images
-data_dir = os.getcwd() + '/../datasets/retinopathy/train_images_512/'
+data_dir = os.getcwd() + '/../datasets/retinopathy/train_images_processed/'
 # data_dir_test = os.getcwd() + '/../datasets/retinopathy/test_images_512/'
 
 # class names
@@ -211,6 +214,5 @@ model.compile(optimizer='sgd', loss='mean_squared_error', run_eagerly=True)
 model.fit(
   train_ds,
   validation_data=val_ds,
-  epochs=epochs,
-  callbacks=[MetricsCallback(val_ds)]
+  epochs=epochs #,callbacks=[MetricsCallback(val_ds)]
 )

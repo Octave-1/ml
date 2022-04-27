@@ -185,6 +185,9 @@ val_ds = (
     .prefetch(AUTOTUNE)
 )
 
+# define initializer
+initializer = tf.keras.initializers.HeNormal()
+
 # build model
 model = tf.keras.Sequential([
   tf.keras.layers.Rescaling(1./255),
@@ -203,9 +206,9 @@ model = tf.keras.Sequential([
   tf.keras.layers.Conv2D(224, 3, activation='relu'),
   tf.keras.layers.MaxPooling2D(),
   tf.keras.layers.Flatten(),
-  tf.keras.layers.Dense(1024, activation='relu'),
-  tf.keras.layers.Dense(512, activation='relu'),
-  tf.keras.layers.Dense(256, activation='relu'),
+  tf.keras.layers.Dense(1024, activation='relu', kernel_initializer=initializer),
+  tf.keras.layers.Dense(512, activation='relu', kernel_initializer=initializer),
+  tf.keras.layers.Dense(256, activation='relu', kernel_initializer=initializer),
   tf.keras.layers.Dense(num_classes - 1, activation='sigmoid')
 ])
 

@@ -15,26 +15,26 @@ else:
 
 # define parameters for the loader
 batch_size = 32
-img_height = 512
-img_width = 768
+img_height = 28
+img_width = 28
 epochs = 40
-num_classes = 5
-sample_size = 128
+num_classes = 10
+class_names = np.array(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
+# sample_size = 128
 
 # define this for later
 AUTOTUNE = tf.data.AUTOTUNE
 
 # move images into folders according to level
 # train labels
-path = os.path.join(os.getcwd(), '../datasets/retinopathy/train_images_processed/')
-train_labels = pd.read_csv(os.path.join(path, '../', 'trainLabels.csv'))
+path = os.path.join(os.getcwd(), '../datasets/retinopathy/fashion_mnist/')
+train_labels = pd.read_csv(os.path.join(path, '../', 'trainLabels_mnist.csv'), dtype='string')
 
 # remove one file which could not be processed
-train_labels = train_labels.loc[train_labels.image != '492_right']
+# train_labels = train_labels.loc[train_labels.image != '492_right']
 
 if first_run:
-    for level in ['0', '1', '2', '3', '4']:
-        train_labels['level'] = train_labels['level'].astype(str)
+    for level in class_names:
         labels = train_labels.loc[train_labels.level == level]
         os.mkdir(os.path.join(path, level))
 
@@ -107,7 +107,7 @@ def get_label(file_path):
 def load_image(file_path):
     # Load the raw data from the file as a string
     img = tf.io.read_file(file_path)
-    img = tf.io.decode_jpeg(img, channels=3)
+    img = tf.io.decode_jpeg(img, channels=1)
 
     return tf.image.resize_with_pad(img, img_height, img_width)
 
@@ -141,28 +141,26 @@ def predict(ds):
 
 
 # process images
-data_dir = os.getcwd() + '/../datasets/retinopathy/train_images_processed/'
+data_dir = os.getcwd() + '/../datasets/retinopathy/fashion_mnist/'
 # data_dir_test = os.getcwd() + '/../datasets/retinopathy/test_images_512/'
-
-# class names
-class_names = np.array(['0', '1', '2', '3', '4'])
 
 # (1) randomly sample 20% of the files to get the validation set
 files = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_dir)) for f in fn]
-files_val = random.sample(files, int(0.2*len(files)))
+files_val = random.sample(files, int(0.1*len(files)))
 # files_test = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_dir_test + '/')) for f in fn]
 
 # (2) the get the list of files for each class, removing the validation files
 # will use the weights vector in the next step
 list_ds = np.array([])
-for level in ['0', '1', '2', '3', '4']:
+for level in class_names:
     files_train = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_dir + level)) for f in fn]
     files_train = [elem for elem in files_train if elem not in files_val]
 
-    ids = np.arange(len(files_train))
-    choices = np.random.choice(ids, sample_size)
-    files_train = np.asarray(files_train)[choices]
+    # ids = np.arange(len(files_train))
+    # choices = np.random.choice(ids, sample_size)
+    # files_train = np.asarray(files_train)[choices]
     list_ds = np.append(list_ds, files_train)
+
 
 np.random.shuffle(list_ds)
 list_ds = tf.data.Dataset.from_tensor_slices(list_ds)
@@ -196,20 +194,8 @@ model = tf.keras.Sequential([
   tf.keras.layers.MaxPooling2D(),
   tf.keras.layers.Conv2D(64, 3, activation='relu'),
   tf.keras.layers.MaxPooling2D(),
-  tf.keras.layers.Conv2D(96, 3, activation='relu'),
-  tf.keras.layers.MaxPooling2D(),
-  tf.keras.layers.Conv2D(128, 3, activation='relu'),
-  tf.keras.layers.MaxPooling2D(),
-  tf.keras.layers.Conv2D(160, 3, activation='relu'),
-  tf.keras.layers.MaxPooling2D(),
-  tf.keras.layers.Conv2D(192, 3, activation='relu'),
-  tf.keras.layers.MaxPooling2D(),
-  tf.keras.layers.Conv2D(224, 3, activation='relu'),
-  tf.keras.layers.MaxPooling2D(),
   tf.keras.layers.Flatten(),
-  tf.keras.layers.Dense(1024, activation='relu', kernel_initializer=initializer),
-  tf.keras.layers.Dense(1024, activation='relu', kernel_initializer=initializer),
-  tf.keras.layers.Dense(1024, activation='relu', kernel_initializer=initializer),
+  tf.keras.layers.Dense(128, activation='relu', kernel_initializer=initializer),
   tf.keras.layers.Dense(num_classes, activation="softmax")
 ])
 

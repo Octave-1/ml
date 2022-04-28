@@ -214,7 +214,7 @@ model = tf.keras.Sequential([
 ])
 
 # compile
-model.compile(optimizer='sgd', loss='mean_squared_error', run_eagerly=True)
+model.compile(optimizer='sgd', loss='categorical_crossentropy', run_eagerly=True)
 model.fit(
   train_ds,
   # validation_data=val_ds,

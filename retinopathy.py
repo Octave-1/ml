@@ -93,14 +93,15 @@ def get_label(file_path):
     img_id = parts[-1]
 
     # determine the label
+    # breakpoint()
     x = tf.strings.to_number(parts[-2], tf.int32)
-    y = tf.strings.to_number(class_names, tf.int32)
+    # y = tf.strings.to_number(class_names, tf.int32)
 
     # The second to last is the class-directory
-    ordinal = tf.math.greater_equal(x, y)
+    # ordinal = tf.math.greater_equal(x, y)
 
     # Integer encode the label
-    return tf.cast(ordinal[1:], tf.int32), img_id
+    return tf.cast(tf.one_hot(x, num_classes), tf.int32), img_id
 
 
 def load_image(file_path):
@@ -209,7 +210,7 @@ model = tf.keras.Sequential([
   tf.keras.layers.Dense(1024, activation='relu', kernel_initializer=initializer),
   tf.keras.layers.Dense(1024, activation='relu', kernel_initializer=initializer),
   tf.keras.layers.Dense(1024, activation='relu', kernel_initializer=initializer),
-  tf.keras.layers.Dense(num_classes - 1, activation='sigmoid')
+  tf.keras.layers.Dense(num_classes, activation="softmax")
 ])
 
 # compile

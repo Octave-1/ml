@@ -11,7 +11,7 @@ import random
 batch_size = 32
 img_height = 28
 img_width = 28
-epochs = 10
+epochs = 30
 num_classes = 10
 class_names = np.array(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
 # sample_size = 128
@@ -98,6 +98,7 @@ train_ds = (
 
 
 model = tf.keras.Sequential([
+    tf.keras.layers.Rescaling(1. / 255),
     tf.keras.layers.Flatten(input_shape=(img_width, img_height)),
     tf.keras.layers.Dense(128, activation='relu'),
     tf.keras.layers.Dense(10)

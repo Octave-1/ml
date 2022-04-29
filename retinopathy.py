@@ -17,7 +17,7 @@ else:
 batch_size = 32
 img_height = 28
 img_width = 28
-epochs = 40
+epochs = 10
 num_classes = 10
 class_names = np.array(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
 # sample_size = 128
@@ -196,7 +196,7 @@ model = tf.keras.Sequential([
 ])
 
 # compile
-model.compile(optimizer='sgd',
+model.compile(optimizer='adam',
               loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
               metrics=['accuracy'],
               run_eagerly=True)

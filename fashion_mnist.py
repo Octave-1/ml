@@ -11,7 +11,7 @@ import random
 batch_size = 32
 img_height = 28
 img_width = 28
-epochs = 30
+epochs = 40
 num_classes = 10
 class_names = np.array(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
 # sample_size = 128

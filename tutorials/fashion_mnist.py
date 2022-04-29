@@ -23,13 +23,13 @@ model.compile(optimizer='adam',
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               metrics=['accuracy'])
 
-model.fit(train_images, train_labels, epochs=10)
+model.fit(train_images, train_labels, epochs=40)
 
 test_loss, test_acc = model.evaluate(test_images,  test_labels, verbose=2)
 print('\nTest accuracy:', test_acc)
 
 df = pd.read_csv("~/Desktop/files.csv", names=["image", "level"])
-level = np.concatenate([y_train, y_test], axis=0)
+level = np.concatenate([train_labels, test_labels], axis=0)
 df['level'] = level
 df['image'] = df['image'].str.replace('.jpg', '', regex=False)
 df.to_csv('/home/tom/train_labels_mnist.csv', index=False)

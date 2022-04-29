@@ -190,17 +190,17 @@ initializer = tf.keras.initializers.HeNormal()
 # build model
 model = tf.keras.Sequential([
   tf.keras.layers.Rescaling(1./255),
-  tf.keras.layers.Conv2D(32, 3, activation='relu'),
-  tf.keras.layers.MaxPooling2D(),
-  tf.keras.layers.Conv2D(64, 3, activation='relu'),
-  tf.keras.layers.MaxPooling2D(),
-  tf.keras.layers.Flatten(),
-  tf.keras.layers.Dense(128, activation='relu', kernel_initializer=initializer),
-  tf.keras.layers.Dense(num_classes, activation="softmax")
+  tf.keras.layers.Flatten(input_shape=(28, 28)),
+  tf.keras.layers.Dense(128, activation='relu'),
+  tf.keras.layers.Dense(10)
 ])
 
 # compile
-model.compile(optimizer='sgd', loss='categorical_crossentropy', run_eagerly=True)
+model.compile(optimizer='sgd',
+              loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
+              metrics=['accuracy'],
+              run_eagerly=True)
+
 model.fit(
   train_ds,
   # validation_data=val_ds,

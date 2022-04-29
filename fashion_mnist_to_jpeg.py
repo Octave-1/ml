@@ -18,10 +18,10 @@ if not os.path.exists(DIR_NAME):
 
 # Save Images
 i = 0
-for li in [x_train, x_test]:
+for li in [x_train]:
     print("[---------------------------------------------------------------]")
     for x in li:
-        filename = "{0}/{1:05d}.jpeg".format(DIR_NAME,i)
+        filename = "{0}/{1:05d}.jpeg".format(DIR_NAME, i)
         print(filename)
         save_image(filename, x)
         i += 1

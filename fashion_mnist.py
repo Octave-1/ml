@@ -11,10 +11,10 @@ import random
 batch_size = 32
 img_height = 28
 img_width = 28
-epochs = 40
+epochs = 300
 num_classes = 10
 class_names = np.array(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
-# sample_size = 128
+sample_size = 10
 
 # define this for later
 AUTOTUNE = tf.data.AUTOTUNE
@@ -35,9 +35,9 @@ for level in class_names:
     files_train = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_dir + level)) for f in fn]
     # files_train = [elem for elem in files_train if elem not in files_val]
 
-    # ids = np.arange(len(files_train))
-    # choices = np.random.choice(ids, sample_size)
-    # files_train = np.asarray(files_train)[choices]
+    ids = np.arange(len(files_train))
+    choices = np.random.choice(ids, sample_size)
+    files_train = np.asarray(files_train)[choices]
     list_ds = np.append(list_ds, files_train)
 
 

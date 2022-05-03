@@ -4,24 +4,45 @@ print(tf.__version__)
 import pandas as pd
 import numpy as np
 import os
+import sys
 import random
-
-
-# define parameters for the loader
-batch_size = 32
-img_height = 28
-img_width = 28
-epochs = 300
-num_classes = 10
-class_names = np.array(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
-sample_size = 10
 
 # define this for later
 AUTOTUNE = tf.data.AUTOTUNE
 
-# process images
-data_dir = os.getcwd() + '/../datasets/retinopathy/fashion_mnist/'
+if len(sys.argv) > 1:
+    arg = sys.argv[1]
+    first_run = True if (arg == '--first_run') else False
+else:
+    first_run = False
+
+# define parameters for the loader
+batch_size = 32
+img_height = 256
+img_width = 256
+epochs = 500
+num_classes = 5
+class_names = np.array(['0', '1', '2', '3', '4'])
+sample_size = 10
+data_dir = os.getcwd() + '/../datasets/retinopathy/train_images_processed/'
 # data_dir_test = os.getcwd() + '/../datasets/retinopathy/test_images_512/'
+
+# move images into folders according to level
+# train labels
+path = os.path.join(os.getcwd(), '../datasets/retinopathy/train_images_processed/')
+train_labels = pd.read_csv(os.path.join(path, '../', 'trainLabels.csv'), dtype='string')
+
+# remove one file which could not be processed
+train_labels = train_labels.loc[train_labels.image != '492_right']
+
+if first_run:
+    for level in class_names:
+        labels = train_labels.loc[train_labels.level == level]
+        os.mkdir(os.path.join(path, level))
+
+        for image in labels['image']:
+            os.rename(path + image + '.jpeg', path + level + "/" + image + '.jpeg')
+
 
 # (1) randomly sample 20% of the files to get the validation set
 files = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_dir)) for f in fn]
@@ -101,7 +122,8 @@ model = tf.keras.Sequential([
     tf.keras.layers.Rescaling(1. / 255),
     tf.keras.layers.Flatten(input_shape=(img_width, img_height)),
     tf.keras.layers.Dense(128, activation='relu'),
-    tf.keras.layers.Dense(10)
+    tf.keras.layers.Dense(64, activation='relu'),
+    tf.keras.layers.Dense(num_classes)
 ])
 
 model.compile(optimizer='adam',
@@ -115,13 +137,13 @@ model.fit(train_ds, epochs=epochs)
 
 
 # get list of train files
-fashion_mnist = tf.keras.datasets.fashion_mnist
-(train_images, train_labels), (test_images, test_labels) = fashion_mnist.load_data()
+# fashion_mnist = tf.keras.datasets.fashion_mnist
+# (train_images, train_labels), (test_images, test_labels) = fashion_mnist.load_data()
 
-train_images = train_images / 255.0
-test_images = test_images / 255.0
+# train_images = train_images / 255.0
+# test_images = test_images / 255.0
 
-df = pd.read_csv("mnist_files.csv", names=["image", "level"])
-df['level'] = train_labels
-df['image'] = df['image'].str.replace('.jpeg', '', regex=False)
-df.to_csv('trainLabels_mnist.csv', index=False)
+# df = pd.read_csv("mnist_files.csv", names=["image", "level"])
+# df['level'] = train_labels
+# df['image'] = df['image'].str.replace('.jpeg', '', regex=False)
+# df.to_csv('trainLabels_mnist.csv', index=False)

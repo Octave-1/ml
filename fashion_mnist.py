@@ -25,7 +25,7 @@ img_width = 512
 epochs = 50
 num_classes = 5
 class_names = np.array(['0', '1', '2', '3', '4'])
-sample_size = 500
+sample_size = 1000
 data_dir = os.getcwd() + '/../datasets/retinopathy/train_images_processed/'
 # data_dir_test = os.getcwd() + '/../datasets/retinopathy/test_images_512/'
 
@@ -46,7 +46,7 @@ if first_run:
             os.rename(path + image + '.jpeg', path + level + "/" + image + '.jpeg')
 
 
-# (1) randomly sample 20% of the files to get the validation set
+# (1) randomly sample 10% of the files to get the validation set
 files = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_dir)) for f in fn]
 # files_val = random.sample(files, int(0.1*len(files)))
 # files_test = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_dir_test + '/')) for f in fn]

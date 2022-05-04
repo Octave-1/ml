@@ -48,7 +48,7 @@ if first_run:
 
 # (1) randomly sample 10% of the files to get the validation set
 files = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_dir)) for f in fn]
-# files_val = random.sample(files, int(0.1*len(files)))
+files_val = random.sample(files, int(0.1*len(files)))
 # files_test = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_dir_test + '/')) for f in fn]
 
 # (2) the get the list of files for each class, removing the validation files
@@ -56,16 +56,12 @@ files = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_d
 list_ds = np.array([])
 for level in class_names:
     files_train = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_dir + level)) for f in fn]
-    # files_train = [elem for elem in files_train if elem not in files_val]
+    files_train = [elem for elem in files_train if elem not in files_val]
 
     ids = np.arange(len(files_train))
     choices = np.random.choice(ids, sample_size)
     files_train = np.asarray(files_train)[choices]
     list_ds = np.append(list_ds, files_train)
-
-
-def relu_advanced(x):
-    return tf.keras.activations.relu(x, max_value=1)
 
 
 def custom_kappa_metric_ohe(y_true, y_pred):
@@ -119,8 +115,8 @@ list_ds = tf.data.Dataset.from_tensor_slices(list_ds)
 resampled_ds = list_ds.map(process_path, num_parallel_calls=AUTOTUNE)
 
 # validation
-# list_ds = tf.data.Dataset.from_tensor_slices(files_val)
-# val_ds = list_ds.map(process_path, num_parallel_calls=AUTOTUNE)
+list_ds = tf.data.Dataset.from_tensor_slices(files_val)
+val_ds = list_ds.map(process_path, num_parallel_calls=AUTOTUNE)
 
 train_ds = (
     resampled_ds
@@ -129,11 +125,11 @@ train_ds = (
     .prefetch(AUTOTUNE)
 )
 
-# val_ds = (
-#    val_ds
-#    .batch(batch_size)
-#    .prefetch(AUTOTUNE)
-# )
+val_ds = (
+    val_ds
+    .batch(batch_size)
+    .prefetch(AUTOTUNE)
+)
 
 
 model = tf.keras.Sequential([
@@ -151,7 +147,10 @@ model.compile(optimizer='adam',
               metrics=['accuracy'],
               run_eagerly=True)
 
-model.fit(train_ds, epochs=epochs)
+model.fit(train_ds,
+          validation_data=val_ds,
+          epochs=epochs)
+
 
 # test_loss, test_acc = model.evaluate(test_images,  test_labels, verbose=2)
 # print('\nTest accuracy:', test_acc)

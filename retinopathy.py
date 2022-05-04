@@ -107,7 +107,7 @@ def get_label(file_path):
 def load_image(file_path):
     # Load the raw data from the file as a string
     img = tf.io.read_file(file_path)
-    img = tf.io.decode_jpeg(img, channels=1)
+    img = tf.io.decode_jpeg(img, channels=3)
 
     return tf.image.resize_with_pad(img, img_height, img_width)
 

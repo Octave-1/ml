@@ -144,7 +144,7 @@ model = tf.keras.Sequential([
 
 model.compile(optimizer='adam',
               loss=tf.keras.losses.CategoricalCrossentropy(),
-              metrics=['accuracy'],
+              metrics=['accuracy', custom_kappa_metric_ohe],
               run_eagerly=True)
 
 model.fit(train_ds,

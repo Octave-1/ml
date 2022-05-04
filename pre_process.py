@@ -14,10 +14,7 @@ def scale_radius(img, scale):
 
 scale = 500
 c = 0
-images = []
-for level in range(0, 5):
-    images_by_level = glob.glob("../datasets/retinopathy/train_images/" + str(level) + '/' + "*.jpeg")
-    images = images + images_by_level
+images = glob.glob("../datasets/retinopathy/test_images/*.jpeg")
 
 for f in images:
     try:
@@ -31,7 +28,7 @@ for f in images:
         cv2.circle(b, (int(a.shape[1] / 2), int(a.shape[0] / 2)), int(scale * 0.9), (1, 1, 1), -1, 8, 0)
         a = a * b + 128 * (1 - b)
         file_name = os.path.split(f)[1]
-        path = '../datasets/retinopathy/train_images_processed/' + file_name
+        path = '../datasets/retinopathy/test_images_processed/' + file_name
         cv2.imwrite(path, a)
         c = c + 1
         if c % 1000 == 0:

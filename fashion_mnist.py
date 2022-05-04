@@ -25,7 +25,7 @@ img_width = 512
 epochs = 50
 num_classes = 5
 class_names = np.array(['0', '1', '2', '3', '4'])
-sample_size = 1000
+sample_size = 5000
 data_dir = os.getcwd() + '/../datasets/retinopathy/train_images_processed/'
 # data_dir_test = os.getcwd() + '/../datasets/retinopathy/test_images_512/'
 
@@ -148,7 +148,7 @@ model = tf.keras.Sequential([
 
 model.compile(optimizer='adam',
               loss=tf.keras.losses.CategoricalCrossentropy(),
-              metrics=['accuracy', custom_kappa_metric_ohe],
+              metrics=['accuracy'],
               run_eagerly=True)
 
 model.fit(train_ds, epochs=epochs)

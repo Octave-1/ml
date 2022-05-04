@@ -18,12 +18,12 @@ else:
 
 # define parameters for the loader
 batch_size = 32
-img_height = 256
-img_width = 256
-epochs = 500
+img_height = 512
+img_width = 512
+epochs = 50
 num_classes = 5
 class_names = np.array(['0', '1', '2', '3', '4'])
-sample_size = 10
+sample_size = 500
 data_dir = os.getcwd() + '/../datasets/retinopathy/train_images_processed/'
 # data_dir_test = os.getcwd() + '/../datasets/retinopathy/test_images_512/'
 
@@ -120,9 +120,11 @@ train_ds = (
 
 model = tf.keras.Sequential([
     tf.keras.layers.Rescaling(1. / 255),
-    tf.keras.layers.Flatten(input_shape=(img_width, img_height)),
+    tf.keras.layers.Conv2D(32, 3, activation='relu'),
+    tf.keras.layers.MaxPooling2D(),
+    tf.keras.layers.Flatten(),
+    tf.keras.layers.Dense(256, activation='relu'),
     tf.keras.layers.Dense(128, activation='relu'),
-    tf.keras.layers.Dense(64, activation='relu'),
     tf.keras.layers.Dense(num_classes)
 ])
 

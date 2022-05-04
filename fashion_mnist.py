@@ -1,11 +1,13 @@
 # TensorFlow and tf.keras
 import tensorflow as tf
-print(tf.__version__)
+import tensorflow_addons as tfa
 import pandas as pd
 import numpy as np
 import os
 import sys
 import random
+
+print(tf.__version__)
 
 # define this for later
 AUTOTUNE = tf.data.AUTOTUNE
@@ -60,6 +62,22 @@ for level in class_names:
     choices = np.random.choice(ids, sample_size)
     files_train = np.asarray(files_train)[choices]
     list_ds = np.append(list_ds, files_train)
+
+
+def relu_advanced(x):
+    return tf.keras.activations.relu(x, max_value=1)
+
+
+def custom_kappa_metric_ohe(y_true, y_pred):
+    # get sparse labels
+    y_pred = tf.math.argmax(y_pred, axis=1)
+    y_true = tf.math.argmax(y_true, axis=1)
+
+    metric = tfa.metrics.CohenKappa(num_classes=5, sparse_labels=True)
+    metric.update_state(y_true, y_pred)
+    result = metric.result()
+
+    return result
 
 
 def load_image(file_path):
@@ -125,12 +143,13 @@ model = tf.keras.Sequential([
     tf.keras.layers.Flatten(),
     tf.keras.layers.Dense(256, activation='relu'),
     tf.keras.layers.Dense(128, activation='relu'),
-    tf.keras.layers.Dense(num_classes)
+    tf.keras.layers.Dense(num_classes, activation='softmax')
 ])
 
 model.compile(optimizer='adam',
-              loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
-              metrics=['accuracy'])
+              loss=tf.keras.losses.CategoricalCrossentropy(),
+              metrics=['accuracy', custom_kappa_metric_ohe],
+              run_eagerly=True)
 
 model.fit(train_ds, epochs=epochs)
 

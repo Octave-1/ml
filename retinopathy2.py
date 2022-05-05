@@ -6,6 +6,7 @@ import numpy as np
 import os
 import sys
 import random
+import csv
 
 print(tf.__version__)
 
@@ -52,7 +53,7 @@ if first_run:
 # (1) randomly sample 10% of the files to get the validation set
 files = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_dir)) for f in fn]
 files_val = random.sample(files, int(0.1*len(files)))
-files_test = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_dir_test + '/')) for f in fn]
+files_test = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_dir_test)) for f in fn]
 
 # (2) the get the list of files for each class, removing the validation files
 list_ds = np.array([])
@@ -110,6 +111,16 @@ def process_path(file_path):
     return img, label[0]
 
 
+def process_path_test(file_path):
+    img = load_image(file_path)
+
+    # get the id of the image
+    parts = tf.strings.split(file_path, os.path.sep)
+    img_id = parts[-1]
+
+    return img, img_id
+
+
 def resize_and_rescale(image, label):
     image = tf.cast(image, tf.float32)
     image = tf.image.resize_with_pad(image, img_height, img_width)
@@ -122,11 +133,11 @@ def augment(image_label, seed):
     img, label = resize_and_rescale(img, label)
 
     # Make a new seed.
-    new_seed = tf.random.experimental.stateless_split(seed, num=1)[0, :]
+    # new_seed = tf.random.experimental.stateless_split(seed, num=1)[0, :]
 
-    img = tfa.image.rotate(img,
-                           angles=tf.random.uniform(shape=[], minval=0.0, maxval=2*np.pi),
-                           interpolation='bilinear')
+    # img = tfa.image.rotate(img,
+    #                        angles=tf.random.uniform(shape=[], minval=0.0, maxval=2*np.pi),
+    #                        interpolation='bilinear')
 
     # apply series of transformations
     # img = tf.image.resize_with_crop_or_pad(img, img_height + 6, img_width + 6)
@@ -135,10 +146,10 @@ def augment(image_label, seed):
     # img = tf.image.stateless_random_contrast(img, 0.5, 1.0, new_seed)
     #
     # (ii) flip vertically
-    img = tf.image.stateless_random_flip_left_right(img, new_seed)
+    # img = tf.image.stateless_random_flip_left_right(img, new_seed)
 
     # (iii) flip horizontally
-    img = tf.image.stateless_random_flip_up_down(img, new_seed)
+    # img = tf.image.stateless_random_flip_up_down(img, new_seed)
 
     # (iv) add random hue
     # img = tf.image.stateless_random_hue(img, 0.05, new_seed)
@@ -167,6 +178,13 @@ def f(x, y):
     return image, label
 
 
+def predict(ds):
+    y_pred = model.predict(ds)
+    y_pred = np.argmax(y_pred, axis=1)
+
+    return y_pred
+
+
 np.random.shuffle(list_ds)
 list_ds = tf.data.Dataset.from_tensor_slices(list_ds)
 # Set `num_parallel_calls` so multiple images are loaded/processed in parallel.
@@ -175,6 +193,10 @@ resampled_ds = list_ds.map(process_path, num_parallel_calls=AUTOTUNE)
 # validation
 list_ds = tf.data.Dataset.from_tensor_slices(files_val)
 val_ds = list_ds.map(process_path, num_parallel_calls=AUTOTUNE)
+
+# test
+list_ds = tf.data.Dataset.from_tensor_slices(files_test)
+test_ds = list_ds.map(process_path_test, num_parallel_calls=AUTOTUNE)
 
 train_ds = (
     resampled_ds
@@ -191,6 +213,12 @@ val_ds = (
     .prefetch(AUTOTUNE)
 )
 
+test_ds = (
+   test_ds
+   .map(resize_and_rescale, num_parallel_calls=AUTOTUNE)
+   .batch(batch_size)
+   .prefetch(AUTOTUNE)
+)
 
 model = tf.keras.Sequential([
     tf.keras.layers.Conv2D(32, 3, activation='relu'),
@@ -209,3 +237,19 @@ model.compile(optimizer='adam',
 model.fit(train_ds,
           validation_data=val_ds,
           epochs=epochs)
+
+# get predictions
+y_pred = predict(test_ds)
+img_id = list(tf.concat([y for x, y in test_ds], axis=0).numpy())
+img_id = [x.decode('utf-8').rstrip('.jpeg') for x in img_id]
+
+df_pred = pd.DataFrame({'image': img_id,
+                       'level': list(y_pred)})
+
+
+df_pred_man = pd.DataFrame({'image': ['25313_right', '27096_right'],
+                            'level': [0, 0]})
+
+df_pred = pd.concat([df_pred, df_pred_man])
+
+df_pred.to_csv('predictions.csv', header=True, index=False, quoting=csv.QUOTE_NONE)

@@ -123,25 +123,25 @@ def augment(image_label, seed):
     img, label = resize_and_rescale(img, label)
 
     # Make a new seed.
-    # new_seed = tf.random.experimental.stateless_split(seed, num=1)[0, :]
-    #
-    # img = tfa.image.rotate(img,
-    #                        angles=tf.random.uniform(shape=[], minval=0.0, maxval=2*np.pi),
-    #                        interpolation='bilinear')
-    #
-    # # apply series of transformations
+    new_seed = tf.random.experimental.stateless_split(seed, num=1)[0, :]
+
+    img = tfa.image.rotate(img,
+                           angles=tf.random.uniform(shape=[], minval=0.0, maxval=2*np.pi),
+                           interpolation='bilinear')
+
+    # apply series of transformations
     # img = tf.image.resize_with_crop_or_pad(img, img_height + 6, img_width + 6)
     #
     # # (i) contrast
     # img = tf.image.stateless_random_contrast(img, 0.5, 1.0, new_seed)
     #
-    # # (ii) flip vertically
-    # img = tf.image.stateless_random_flip_left_right(img, new_seed)
-    #
-    # # (iii) flip horizontally
-    # img = tf.image.stateless_random_flip_up_down(img, new_seed)
-    #
-    # # (iv) add random hue
+    # (ii) flip vertically
+    img = tf.image.stateless_random_flip_left_right(img, new_seed)
+
+    # (iii) flip horizontally
+    img = tf.image.stateless_random_flip_up_down(img, new_seed)
+
+    # (iv) add random hue
     # img = tf.image.stateless_random_hue(img, 0.05, new_seed)
     #
     # # (v) add noise to image

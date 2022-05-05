@@ -32,7 +32,6 @@ data_dir_test = os.getcwd() + '/../datasets/retinopathy/test_images_processed/'
 # create a generator to augment dataset
 rng = tf.random.Generator.from_seed(123, alg='philox')
 
-# move images into folders according to level
 # train labels
 path = os.path.join(os.getcwd(), '../datasets/retinopathy/train_images_processed/')
 train_labels = pd.read_csv(os.path.join(path, '../', 'trainLabels.csv'), dtype='string')
@@ -40,6 +39,7 @@ train_labels = pd.read_csv(os.path.join(path, '../', 'trainLabels.csv'), dtype='
 # remove one file which could not be processed
 train_labels = train_labels.loc[train_labels.image != '492_right']
 
+# move images into folders according to level
 if first_run:
     for level in class_names:
         labels = train_labels.loc[train_labels.level == level]
@@ -55,7 +55,6 @@ files_val = random.sample(files, int(0.1*len(files)))
 files_test = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_dir_test + '/')) for f in fn]
 
 # (2) the get the list of files for each class, removing the validation files
-# will use the weights vector in the next step
 list_ds = np.array([])
 for level in class_names:
     files_train = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_dir + level)) for f in fn]

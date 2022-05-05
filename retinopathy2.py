@@ -27,7 +27,10 @@ num_classes = 5
 class_names = np.array(['0', '1', '2', '3', '4'])
 sample_size = 5000
 data_dir = os.getcwd() + '/../datasets/retinopathy/train_images_processed/'
-# data_dir_test = os.getcwd() + '/../datasets/retinopathy/test_images_512/'
+data_dir_test = os.getcwd() + '/../datasets/retinopathy/test_images_processed/'
+
+# create a generator to augment dataset
+rng = tf.random.Generator.from_seed(123, alg='philox')
 
 # move images into folders according to level
 # train labels
@@ -49,7 +52,7 @@ if first_run:
 # (1) randomly sample 10% of the files to get the validation set
 files = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_dir)) for f in fn]
 files_val = random.sample(files, int(0.1*len(files)))
-# files_test = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_dir_test + '/')) for f in fn]
+files_test = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_dir_test + '/')) for f in fn]
 
 # (2) the get the list of files for each class, removing the validation files
 # will use the weights vector in the next step
@@ -92,7 +95,6 @@ def get_label(file_path):
     img_id = parts[-1]
 
     # determine the label
-    # breakpoint()
     x = tf.strings.to_number(parts[-2], tf.int32)
     # y = tf.strings.to_number(class_names, tf.int32)
 
@@ -116,6 +118,56 @@ def resize_and_rescale(image, label):
     return image, label
 
 
+def augment(image_label, seed):
+    img, label = image_label
+    img, label = resize_and_rescale(img, label)
+
+    # Make a new seed.
+    # new_seed = tf.random.experimental.stateless_split(seed, num=1)[0, :]
+    #
+    # img = tfa.image.rotate(img,
+    #                        angles=tf.random.uniform(shape=[], minval=0.0, maxval=2*np.pi),
+    #                        interpolation='bilinear')
+    #
+    # # apply series of transformations
+    # img = tf.image.resize_with_crop_or_pad(img, img_height + 6, img_width + 6)
+    #
+    # # (i) contrast
+    # img = tf.image.stateless_random_contrast(img, 0.5, 1.0, new_seed)
+    #
+    # # (ii) flip vertically
+    # img = tf.image.stateless_random_flip_left_right(img, new_seed)
+    #
+    # # (iii) flip horizontally
+    # img = tf.image.stateless_random_flip_up_down(img, new_seed)
+    #
+    # # (iv) add random hue
+    # img = tf.image.stateless_random_hue(img, 0.05, new_seed)
+    #
+    # # (v) add noise to image
+    # img = tf.image.stateless_random_jpeg_quality(img, 85, 100, new_seed)
+    #
+    # # (vi) random saturation
+    # img = tf.image.stateless_random_saturation(img, 0.7, 1.0, new_seed)
+    #
+    # # (vii) Random crop back to the original size.
+    # img = tf.image.stateless_random_crop(img, size=[img_height, img_width, 3], seed=new_seed)
+    #
+    # # (viii) Random brightness
+    # img = tf.image.stateless_random_brightness(img, max_delta=0.18, seed=new_seed)
+    #
+    # img = tf.clip_by_value(img, 0, 1)
+
+    return img, label
+
+
+# Create a wrapper function for updating seeds.
+def f(x, y):
+    seed = rng.make_seeds(2)[0]
+    image, label = augment((x, y), seed)
+    return image, label
+
+
 np.random.shuffle(list_ds)
 list_ds = tf.data.Dataset.from_tensor_slices(list_ds)
 # Set `num_parallel_calls` so multiple images are loaded/processed in parallel.
@@ -128,7 +180,7 @@ val_ds = list_ds.map(process_path, num_parallel_calls=AUTOTUNE)
 train_ds = (
     resampled_ds
     .shuffle(1000)
-    .map(resize_and_rescale, num_parallel_calls=AUTOTUNE)
+    .map(f, num_parallel_calls=AUTOTUNE)
     .batch(batch_size)
     .prefetch(AUTOTUNE)
 )
@@ -158,20 +210,3 @@ model.compile(optimizer='adam',
 model.fit(train_ds,
           validation_data=val_ds,
           epochs=epochs)
-
-
-# test_loss, test_acc = model.evaluate(test_images,  test_labels, verbose=2)
-# print('\nTest accuracy:', test_acc)
-
-
-# get list of train files
-# fashion_mnist = tf.keras.datasets.fashion_mnist
-# (train_images, train_labels), (test_images, test_labels) = fashion_mnist.load_data()
-
-# train_images = train_images / 255.0
-# test_images = test_images / 255.0
-
-# df = pd.read_csv("mnist_files.csv", names=["image", "level"])
-# df['level'] = train_labels
-# df['image'] = df['image'].str.replace('.jpeg', '', regex=False)
-# df.to_csv('trainLabels_mnist.csv', index=False)

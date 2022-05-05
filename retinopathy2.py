@@ -21,8 +21,8 @@ else:
 # define parameters for the loader
 batch_size = 32
 img_height = 512
-img_width = 512
-epochs = 50
+img_width = 768
+epochs = 1
 num_classes = 5
 class_names = np.array(['0', '1', '2', '3', '4'])
 sample_size = 5000
@@ -81,7 +81,7 @@ def load_image(file_path):
     img = tf.io.read_file(file_path)
     img = tf.io.decode_jpeg(img, channels=3)
 
-    return tf.image.resize_with_pad(img, img_height, img_width)
+    return img
 
 
 def get_label(file_path):
@@ -109,6 +109,13 @@ def process_path(file_path):
     return img, label[0]
 
 
+def resize_and_rescale(image, label):
+    image = tf.cast(image, tf.float32)
+    image = tf.image.resize_with_pad(image, img_height, img_width)
+    image = (image / 255.0)
+    return image, label
+
+
 np.random.shuffle(list_ds)
 list_ds = tf.data.Dataset.from_tensor_slices(list_ds)
 # Set `num_parallel_calls` so multiple images are loaded/processed in parallel.
@@ -121,19 +128,20 @@ val_ds = list_ds.map(process_path, num_parallel_calls=AUTOTUNE)
 train_ds = (
     resampled_ds
     .shuffle(1000)
+    .map(resize_and_rescale, num_parallel_calls=AUTOTUNE)
     .batch(batch_size)
     .prefetch(AUTOTUNE)
 )
 
 val_ds = (
     val_ds
+    .map(resize_and_rescale, num_parallel_calls=AUTOTUNE)
     .batch(batch_size)
     .prefetch(AUTOTUNE)
 )
 
 
 model = tf.keras.Sequential([
-    tf.keras.layers.Rescaling(1. / 255),
     tf.keras.layers.Conv2D(32, 3, activation='relu'),
     tf.keras.layers.MaxPooling2D(),
     tf.keras.layers.Flatten(),

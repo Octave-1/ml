@@ -19,14 +19,18 @@ if len(sys.argv) > 1:
 else:
     first_run = False
 
-# define parameters for the loader
+# ----------------- define parameters ----------------- #
 batch_size = 32
 img_height = 512
 img_width = 768
 epochs = 1
+sample_size = 5000
+# determine if we use the ordinal target vector or the one hot encoding version
+ordinal_encoding = False
+# --------------- end define parameters --------------- #
+
 num_classes = 5
 class_names = np.array(['0', '1', '2', '3', '4'])
-sample_size = 5000
 data_dir = os.getcwd() + '/../datasets/retinopathy/train_images_processed/'
 data_dir_test = os.getcwd() + '/../datasets/retinopathy/test_images_processed/'
 
@@ -49,10 +53,9 @@ if first_run:
         for image in labels['image']:
             os.rename(path + image + '.jpeg', path + level + "/" + image + '.jpeg')
 
-
 # (1) randomly sample 10% of the files to get the validation set
 files = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_dir)) for f in fn]
-files_val = random.sample(files, int(0.1*len(files)))
+files_val = random.sample(files, int(0.1 * len(files)))
 files_test = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_dir_test)) for f in fn]
 
 # (2) the get the list of files for each class, removing the validation files
@@ -65,6 +68,22 @@ for level in class_names:
     choices = np.random.choice(ids, sample_size)
     files_train = np.asarray(files_train)[choices]
     list_ds = np.append(list_ds, files_train)
+
+
+def custom_kappa_metric(y_true, y_pred):
+    # get sparse labels
+    y_true = tf.math.reduce_sum(y_true, axis=-1, keepdims=False)
+
+    # same for y_pred
+    y_pred = tf.where(tf.less_equal(y_pred, 0.5), 0, 1)
+    y_pred = tf.math.cumprod(y_pred, axis=1)
+    y_pred = tf.math.reduce_sum(y_pred, axis=-1, keepdims=False)
+
+    metric = tfa.metrics.CohenKappa(num_classes=5, sparse_labels=True)
+    metric.update_state(y_true, y_pred)
+    result = metric.result()
+
+    return result
 
 
 def custom_kappa_metric_ohe(y_true, y_pred):
@@ -87,38 +106,34 @@ def load_image(file_path):
     return img
 
 
-def get_label(file_path):
-    # Convert the path to a list of path components
-    parts = tf.strings.split(file_path, os.path.sep)
-
-    # get the id of the image
-    img_id = parts[-1]
-
+def get_label(level, ordinal_encoding=False):
     # determine the label
-    x = tf.strings.to_number(parts[-2], tf.int32)
-    # y = tf.strings.to_number(class_names, tf.int32)
+    ohe = tf.strings.to_number(level, tf.int32)
+    classes = tf.strings.to_number(class_names, tf.int32)
 
-    # The second to last is the class-directory
-    # ordinal = tf.math.greater_equal(x, y)
+    if ordinal_encoding:
+        # The second to last is the class-directory
+        output = tf.math.greater_equal(ohe, classes)[1:]
+    else:
+        output = tf.one_hot(ohe, num_classes)
 
     # Integer encode the label
-    return tf.cast(tf.one_hot(x, num_classes), tf.int32), img_id
+    return tf.cast(output, tf.int32)
 
 
-def process_path(file_path):
-    label = get_label(file_path)
-    img = load_image(file_path)
-    return img, label[0]
-
-
-def process_path_test(file_path):
-    img = load_image(file_path)
-
+def process_path(file_path, ordinal_encoding=False, test=False):
     # get the id of the image
     parts = tf.strings.split(file_path, os.path.sep)
     img_id = parts[-1]
+    img = load_image(file_path)
 
-    return img, img_id
+    if not test:
+        label = get_label(parts[-2], ordinal_encoding)
+        output = (img, label)
+    else:
+        output = (img, img_id)
+
+    return output
 
 
 def resize_and_rescale(image, label):
@@ -185,39 +200,54 @@ def predict(ds):
     return y_pred
 
 
+# adjust code based on ordinal vs OHE configuration
+if ordinal_encoding:
+    activation = 'sigmoid'
+    metric = custom_kappa_metric
+    loss = tf.keras.losses.MeanSquaredError()
+    num_nodes = num_classes - 1
+else:
+    activation = 'softmax'
+    metric = custom_kappa_metric_ohe
+    loss = tf.keras.losses.CategoricalCrossentropy()
+    num_nodes = num_classes
+
+# ensure dataset is shuffled & set `num_parallel_calls` so multiple images are loaded/processed in parallel.
 np.random.shuffle(list_ds)
 list_ds = tf.data.Dataset.from_tensor_slices(list_ds)
-# Set `num_parallel_calls` so multiple images are loaded/processed in parallel.
-resampled_ds = list_ds.map(process_path, num_parallel_calls=AUTOTUNE)
+resampled_ds = list_ds.map(lambda x: process_path(x, ordinal_encoding=ordinal_encoding, test=False),
+                           num_parallel_calls=AUTOTUNE)
 
 # validation
 list_ds = tf.data.Dataset.from_tensor_slices(files_val)
-val_ds = list_ds.map(process_path, num_parallel_calls=AUTOTUNE)
+val_ds = list_ds.map(lambda x: process_path(x, ordinal_encoding=ordinal_encoding, test=False),
+                     num_parallel_calls=AUTOTUNE)
 
 # test
 list_ds = tf.data.Dataset.from_tensor_slices(files_test)
-test_ds = list_ds.map(process_path_test, num_parallel_calls=AUTOTUNE)
+test_ds = list_ds.map(lambda x: process_path(x, ordinal_encoding=ordinal_encoding, test=True),
+                      num_parallel_calls=AUTOTUNE)
 
 train_ds = (
-    resampled_ds
-    .shuffle(1000)
-    .map(f, num_parallel_calls=AUTOTUNE)
-    .batch(batch_size)
-    .prefetch(AUTOTUNE)
+        resampled_ds
+        .shuffle(1000)
+        .map(f, num_parallel_calls=AUTOTUNE)
+        .batch(batch_size)
+        .prefetch(AUTOTUNE)
 )
 
 val_ds = (
-    val_ds
-    .map(resize_and_rescale, num_parallel_calls=AUTOTUNE)
-    .batch(batch_size)
-    .prefetch(AUTOTUNE)
+        val_ds
+        .map(resize_and_rescale, num_parallel_calls=AUTOTUNE)
+        .batch(batch_size)
+        .prefetch(AUTOTUNE)
 )
 
 test_ds = (
-   test_ds
-   .map(resize_and_rescale, num_parallel_calls=AUTOTUNE)
-   .batch(batch_size)
-   .prefetch(AUTOTUNE)
+        test_ds
+        .map(resize_and_rescale, num_parallel_calls=AUTOTUNE)
+        .batch(batch_size)
+        .prefetch(AUTOTUNE)
 )
 
 model = tf.keras.Sequential([
@@ -226,12 +256,12 @@ model = tf.keras.Sequential([
     tf.keras.layers.Flatten(),
     tf.keras.layers.Dense(256, activation='relu'),
     tf.keras.layers.Dense(128, activation='relu'),
-    tf.keras.layers.Dense(num_classes, activation='softmax')
+    tf.keras.layers.Dense(num_nodes, activation=activation)
 ])
 
 model.compile(optimizer='adam',
-              loss=tf.keras.losses.CategoricalCrossentropy(),
-              metrics=['accuracy', custom_kappa_metric_ohe],
+              loss=loss,
+              metrics=['accuracy', metric],
               run_eagerly=True)
 
 model.fit(train_ds,
@@ -244,8 +274,7 @@ img_id = list(tf.concat([y for x, y in test_ds], axis=0).numpy())
 img_id = [x.decode('utf-8').rstrip('.jpeg') for x in img_id]
 
 df_pred = pd.DataFrame({'image': img_id,
-                       'level': list(y_pred)})
-
+                        'level': list(y_pred)})
 
 df_pred_man = pd.DataFrame({'image': ['25313_right', '27096_right'],
                             'level': [0, 0]})

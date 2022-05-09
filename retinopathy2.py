@@ -23,7 +23,7 @@ else:
 batch_size = 32
 img_height = 512
 img_width = 768
-epochs = 1
+epochs = 20
 sample_size = 5000
 # determine if we use the ordinal target vector or the one hot encoding version
 ordinal_encoding = False
@@ -148,40 +148,23 @@ def augment(image_label, seed):
     img, label = resize_and_rescale(img, label)
 
     # Make a new seed.
-    # new_seed = tf.random.experimental.stateless_split(seed, num=1)[0, :]
-
-    # img = tfa.image.rotate(img,
-    #                        angles=tf.random.uniform(shape=[], minval=0.0, maxval=2*np.pi),
-    #                        interpolation='bilinear')
-
-    # apply series of transformations
-    # img = tf.image.resize_with_crop_or_pad(img, img_height + 6, img_width + 6)
+    new_seed = tf.random.experimental.stateless_split(seed, num=1)[0, :]
     #
-    # # (i) contrast
-    # img = tf.image.stateless_random_contrast(img, 0.5, 1.0, new_seed)
-    #
+    # (i) rotate randomly
+    img_mean = tf.math.reduce_mean(img)
+    img = tfa.image.rotate(img,
+                           angles=tf.random.uniform(shape=[], minval=0.0, maxval=2*np.pi),
+                           interpolation='bilinear',
+                           fill_mode='constant',
+                           fill_value=img_mean)
+
     # (ii) flip vertically
-    # img = tf.image.stateless_random_flip_left_right(img, new_seed)
+    img = tf.image.stateless_random_flip_left_right(img, new_seed)
 
     # (iii) flip horizontally
-    # img = tf.image.stateless_random_flip_up_down(img, new_seed)
+    img = tf.image.stateless_random_flip_up_down(img, new_seed)
 
-    # (iv) add random hue
-    # img = tf.image.stateless_random_hue(img, 0.05, new_seed)
-    #
-    # # (v) add noise to image
-    # img = tf.image.stateless_random_jpeg_quality(img, 85, 100, new_seed)
-    #
-    # # (vi) random saturation
-    # img = tf.image.stateless_random_saturation(img, 0.7, 1.0, new_seed)
-    #
-    # # (vii) Random crop back to the original size.
-    # img = tf.image.stateless_random_crop(img, size=[img_height, img_width, 3], seed=new_seed)
-    #
-    # # (viii) Random brightness
-    # img = tf.image.stateless_random_brightness(img, max_delta=0.18, seed=new_seed)
-    #
-    # img = tf.clip_by_value(img, 0, 1)
+    img = tf.clip_by_value(img, 0, 1)
 
     return img, label
 
@@ -251,6 +234,8 @@ test_ds = (
 )
 
 model = tf.keras.Sequential([
+    tf.keras.layers.Conv2D(32, 5, activation='relu'),
+    tf.keras.layers.MaxPooling2D(),
     tf.keras.layers.Conv2D(32, 3, activation='relu'),
     tf.keras.layers.MaxPooling2D(),
     tf.keras.layers.Flatten(),
@@ -261,7 +246,7 @@ model = tf.keras.Sequential([
 
 model.compile(optimizer='adam',
               loss=loss,
-              metrics=['accuracy', metric],
+              metrics=['accuracy'],
               run_eagerly=True)
 
 model.fit(train_ds,

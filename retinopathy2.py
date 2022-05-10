@@ -150,7 +150,7 @@ def augment(image_label, seed):
 
     # Make a new seed.
     new_seed = tf.random.experimental.stateless_split(seed, num=1)[0, :]
-    #
+
     # (i) rotate randomly
     img_mean = tf.math.reduce_mean(img)
     img = tfa.image.rotate(img,
@@ -164,6 +164,14 @@ def augment(image_label, seed):
 
     # (iii) flip horizontally
     img = tf.image.stateless_random_flip_up_down(img, new_seed)
+
+    # (iv)
+    img = tfa.image.translate(images=img,
+                              translations=[tf.random.uniform(shape=[], minval=-0.05*img_width, maxval=0.05*img_width),
+                                            tf.random.uniform(shape=[], minval=-0.05*img_height, maxval=0.05*img_height)],
+                              interpolation='nearest',
+                              fill_mode='constant',
+                              fill_value=img_mean)
 
     img = tf.clip_by_value(img, 0, 1)
 

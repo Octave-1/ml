@@ -24,7 +24,7 @@ batch_size = 32
 img_height = 512
 img_width = 768
 epochs = 20
-sample_size = 5000
+sample_size = 7000
 # determine if we use the ordinal target vector or the one hot encoding version
 ordinal_encoding = False
 # --------------- end define parameters --------------- #

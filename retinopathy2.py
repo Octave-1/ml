@@ -249,9 +249,21 @@ model.compile(optimizer='adam',
               metrics=['accuracy'],
               run_eagerly=True)
 
+checkpoint_filepath = '../datasets/retinopathy/checkpoints/'
+model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+    filepath=checkpoint_filepath,
+    save_weights_only=True,
+    monitor='val_loss',
+    mode='max',
+    save_best_only=True)
+
 model.fit(train_ds,
           validation_data=val_ds,
-          epochs=epochs)
+          epochs=epochs,
+          callbacks=[model_checkpoint_callback])
+
+# The model weights (that are considered the best) are loaded into the model.
+model.load_weights(checkpoint_filepath)
 
 # get predictions
 y_pred = predict(test_ds)

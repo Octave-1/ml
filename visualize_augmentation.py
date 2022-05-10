@@ -60,5 +60,12 @@ img = tf.image.stateless_random_saturation(image, 0.7, 1.0, new_seed)
 # (viii) Random brightness
 img = tf.image.stateless_random_brightness(image, max_delta=0.18, seed=new_seed)
 
+img = tfa.image.translate(
+    images=image,
+    translations=[0, -60],
+    interpolation='nearest',
+    fill_mode='constant',
+    fill_value=128)
+
 visualize(image, img, 4)
 

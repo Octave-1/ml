@@ -23,7 +23,7 @@ else:
 batch_size = 32
 img_height = 512
 img_width = 768
-epochs = 20
+epochs = 50
 sample_size = 9000
 val_proportion = 0.15
 # determine if we use the ordinal target vector or the one hot encoding version

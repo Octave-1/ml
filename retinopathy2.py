@@ -24,7 +24,8 @@ batch_size = 32
 img_height = 512
 img_width = 768
 epochs = 20
-sample_size = 7000
+sample_size = 9000
+val_proportion = 0.15
 # determine if we use the ordinal target vector or the one hot encoding version
 ordinal_encoding = False
 # --------------- end define parameters --------------- #
@@ -55,7 +56,7 @@ if first_run:
 
 # (1) randomly sample 10% of the files to get the validation set
 files = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_dir)) for f in fn]
-files_val = random.sample(files, int(0.1 * len(files)))
+files_val = random.sample(files, int(val_proportion * len(files)))
 files_test = [os.path.join(dp, f) for dp, dn, fn in os.walk(os.path.expanduser(data_dir_test)) for f in fn]
 
 # (2) the get the list of files for each class, removing the validation files
@@ -236,11 +237,15 @@ test_ds = (
 model = tf.keras.Sequential([
     tf.keras.layers.Conv2D(32, 5, activation='relu'),
     tf.keras.layers.MaxPooling2D(),
-    tf.keras.layers.Conv2D(32, 3, activation='relu'),
+    tf.keras.layers.Conv2D(64, 3, activation='relu'),
+    tf.keras.layers.MaxPooling2D(),
+    tf.keras.layers.Conv2D(96, 3, activation='relu'),
     tf.keras.layers.MaxPooling2D(),
     tf.keras.layers.Flatten(),
     tf.keras.layers.Dense(256, activation='relu'),
+    tf.keras.layers.Dropout(0.1),
     tf.keras.layers.Dense(128, activation='relu'),
+    tf.keras.layers.Dropout(0.1),
     tf.keras.layers.Dense(num_nodes, activation=activation)
 ])
 

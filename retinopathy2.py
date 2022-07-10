@@ -241,8 +241,10 @@ def threshold(row, thresholds):
         row['level_pred'] = 2
     elif thresholds[2] < val < thresholds[3]:
         row['level_pred'] = 3
-    else:
+    elif val > thresholds[3]:
         row['level_pred'] = 4
+    else:
+        row['level_pred'] = np.NaN
 
     return row
 
@@ -284,8 +286,8 @@ def get_dataset(y_pred, files, dataset_type):
     df_right['id_index'] = df_right.groupby(['id']).cumcount() + 1
     df = pd.merge(df_left, df_right, on=['id', 'id_index'], suffixes=('_x', '_y'))
 
-    df_left = df.drop(['eye_y', 'level_y', 'id_index', 'id'], axis=1).rename(columns={"eye_x": "eye", "level_x": "level"})
-    df_right = df.drop(['eye_x', 'level_x', 'id_index', 'id'], axis=1).rename(columns={"eye_y": "eye", "level_y": "level"})
+    df_left = df.drop(['eye_y', 'level_y', 'id_index'], axis=1).rename(columns={"eye_x": "eye", "level_x": "level"})
+    df_right = df.drop(['eye_x', 'level_x', 'id_index'], axis=1).rename(columns={"eye_y": "eye", "level_y": "level"})
 
     df = pd.concat([df_left, df_right], axis=0).reset_index()
 
@@ -297,8 +299,7 @@ def get_dataset(y_pred, files, dataset_type):
             df = pd.concat(lst)
 
     y = df['level']
-    X_data = df.drop(['level'], axis=1)
-
+    X_data = df.sort_values(['id', 'eye'], ascending=True).drop(['level', 'id'], axis=1)
     X_data = pd.get_dummies(X_data, columns=["eye"])
     X_data = X_data.drop(['index'], axis=1)
 

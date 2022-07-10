@@ -298,8 +298,9 @@ def get_dataset(y_pred, files, dataset_type):
             lst.append(group.sample(max_size - len(group), replace=True))
             df = pd.concat(lst)
 
-    y = df['level']
-    X_data = df.sort_values(['id', 'eye'], ascending=True).drop(['level', 'id'], axis=1)
+    X_data = df.sort_values(['id', 'eye'], ascending=True)
+    y = X_data['level']
+    X_data = X_data.drop(['level', 'id'], axis=1)
     X_data = pd.get_dummies(X_data, columns=["eye"])
     X_data = X_data.drop(['index'], axis=1)
 

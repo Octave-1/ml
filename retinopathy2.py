@@ -389,10 +389,10 @@ model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
     mode='min',
     save_best_only=True)
 
-model.fit(train_ds,
-          validation_data=val_ds,
-          epochs=epochs,
-          callbacks=[model_checkpoint_callback])
+# model.fit(train_ds,
+#           validation_data=val_ds,
+#           epochs=epochs,
+#           callbacks=[model_checkpoint_callback])
 
 # The model weights (that are considered the best) are loaded into the model.
 model = tf.keras.models.load_model('../datasets/retinopathy/checkpoints/')
